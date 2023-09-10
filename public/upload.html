@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Arquivo CNAB</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="shortcut icon" href="favicon.png" type="image/png">
+    <script>
+        const tipoMapping = {
+            '1': 'Débito',
+            '2': 'Crédito',
+            '3': 'Pix',
+            '4': 'Financiamento'
+        };
+
+        //rolar suavemente para o topo da página
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
+
+    </script>
+    <style>
+        /* Estilo global */
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* contêiner principal */
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        /* Estilo do botão */
+        .button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Estilo do input de arquivo */
+        #fileInput {
+            display: none;
+        }
+
+        /* Estilo do label do input de arquivo */
+        label[for="fileInput"] {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Estilo do select */
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Estilo da tabela */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Estilo das células de cabeçalho */
+        th {
+            background-color: #f2f2f2;
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        /* Estilo das células de dados */
+        td {
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        /* Estilo das linhas ímpares */
+        tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        /* Estilo do botão "Ir para o topo" */
+        .scroll-to-top-button {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 9999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Upload de Arquivo CNAB</h1>
+        <button class="scroll-to-top-button" id="scrollToTopButton">Ir para o topo</button>
+        <label for="fileInput">Escolha um arquivo</label>
+        <input type="file" id="fileInput" onchange="displayFileName()">
+        <p id="selectedFileName"></p> <!-- Novo elemento para exibir o nome do arquivo -->
+        <button class="button" id="uploadButton">Clique para enviar</button>
+        <label for="storeFilter">Filtrar por Loja:</label>
+        <select id="storeFilter">
+            <option value="all">Todas as Lojas</option>
+            <option value="ADEGA PEREIRA">ADEGA PEREIRA</option>
+            <option value="LOJAS MÁGICO DE OZ">LOJAS MÁGICO DE OZ</option>
+            <option value="SUPERMERCADO ARAUJ">SUPERMERCADO ARAUJ</option>
+            <option value="PADARIA 3 CORAÇÕES">PADARIA 3 CORAÇÕES</option>
+            <!-- Adicione outras opções de lojas conforme necessário -->
+        </select>
+
+        <button class="button" id="filterButton">Filtrar</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>CPF</th>
+                    <th>Cartão</th>
+                    <th>Dono da Loja</th>
+                    <th>Nome da Loja</th>
+                </tr>
+            </thead>
+            <tbody id="operationsList">
+                <!-- Aqui serão inseridas as linhas da tabela com os dados filtrados -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2"></td>
+                    <td id="saldo" colspan="5"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <footer>
+        &copy; 2023 Upload de Arquivo CNAB - <a href="https://www.linkedin.com/in/gustavo-dos-reis-pascoaletti-34219a207/" target="_blank">LinkedIn - Gustavo Pascoaletti</a>
+    </footer>
+
+    <script>
+        // WebSocket connection
+        const socket = new WebSocket('ws://localhost:3000');
+
+        // Função para calcular o saldo com base nos valores filtrados
+        function calcularSaldo(operations) {
+            return operations.reduce((saldo, operation) => saldo + (operation.valor / 100), 0);
+        }
+
+        // Ouça as mensagens recebidas
+        socket.addEventListener('message', event => {
+            const operations = JSON.parse(event.data);
+            const storeFilter = document.getElementById('storeFilter');
+            const operationsList = document.getElementById('operationsList');
+            const saldoElement = document.getElementById('saldo');
+            const selectedFileName = document.getElementById('selectedFileName'); 
+
+            function formatarData(data) {
+                // Verifique se a data está no formato AAAA MM DD (8 caracteres)
+                if (data.length === 8) {
+                    const ano = data.slice(0, 4);
+                    const mes = data.slice(4, 6);
+                    const dia = data.slice(6, 8);
+                    return `${ano}/${mes}/${dia}`;
+                } else {
+                    return data; // Retorna a data como está se não estiver no formato esperado
+                }
+            }
+
+            function filterOperations() {
+                const selectedStore = storeFilter.value;
+
+                // Limpar a lista antes de exibi-la com os dados filtrados
+                operationsList.innerHTML = '';
+
+                const filteredOperations = operations.filter(operation => selectedStore === 'all' || operation.nome_da_loja === selectedStore);
+
+                filteredOperations.forEach(operation => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${tipoMapping[operation.tipo]}</td>
+                        <td>${formatarData(operation.data)}</td>
+                        <td>R$ ${(operation.valor / 100).toFixed(2)}</td>
+                        <td>${operation.cpf}</td>
+                        <td>${operation.cartao}</td>
+                        <td>${operation.dono_da_loja}</td>
+                        <td>${operation.nome_da_loja}</td>
+                    `;
+                    operationsList.appendChild(row);
+                });
+
+                // Calcular o saldo com base nos valores filtrados
+                const saldo = calcularSaldo(filteredOperations);
+                saldoElement.textContent = `Saldo: R$ ${saldo.toFixed(2)}`;
+            }
+
+            // Chame a função de filtro inicialmente para exibir todos os dados e o saldo
+            filterOperations();
+
+            // Ouça o clique no botão de filtro
+            const filterButton = document.getElementById('filterButton');
+            filterButton.addEventListener('click', filterOperations);
+        });
+
+        // Função para exibir o nome do arquivo selecionado
+        function displayFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const selectedFileName = document.getElementById('selectedFileName');
+            if (fileInput.files.length > 0) {
+                selectedFileName.textContent = `Arquivo selecionado: ${fileInput.files[0].name}`;
+            } else {
+                selectedFileName.textContent = '';
+            }
+        }
+
+        // Manipulador de cliques do botão de upload
+        document.getElementById('uploadButton').addEventListener('click', () => {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const outputDiv = document.getElementById('output');
+                        outputDiv.innerHTML = JSON.stringify(data, null, 2);
+                    })
+                    .catch(error => {
+                        console.error('Erro no upload:', error);
+                    });
+
+                // Limpar o input de arquivo
+                fileInput.value = '';
+
+                
+            }
+        });
+    </script>
+</body>
+
+</html>
