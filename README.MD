@@ -38,8 +38,6 @@ Com essas etapas, você deve conseguir executar o projeto localmente e interagir
 
 
 🛠️ Construído com
-Mencione as ferramentas que você usou para criar seu projeto
-
 1. Visual Studio Code: O framework usado
 2. Node.js: Um ambiente de tempo de execução JavaScript que permite executar do lado do servidor.
 3. Express.js: Um framework para Node.js que facilita a criação de aplicativos da web e APIs.
