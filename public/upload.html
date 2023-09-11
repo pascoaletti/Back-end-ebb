@@ -133,7 +133,7 @@
         <button class="scroll-to-top-button" id="scrollToTopButton">Ir para o topo</button>
         <label for="fileInput">Escolha um arquivo</label>
         <input type="file" id="fileInput" onchange="displayFileName()">
-        <p id="selectedFileName"></p> <!-- Novo elemento para exibir o nome do arquivo -->
+        <p id="selectedFileName"></p> <!-- exibir o nome do arquivo -->
         <button class="button" id="uploadButton">Clique para enviar</button>
         <label for="storeFilter">Filtrar por Loja:</label>
         <select id="storeFilter">
@@ -142,7 +142,7 @@
             <option value="LOJAS MÁGICO DE OZ">LOJAS MÁGICO DE OZ</option>
             <option value="SUPERMERCADO ARAUJ">SUPERMERCADO ARAUJ</option>
             <option value="PADARIA 3 CORAÇÕES">PADARIA 3 CORAÇÕES</option>
-            <!-- Adicione outras opções de lojas conforme necessário -->
+            <!-- adicionar outras opções de lojas caso precise -->
         </select>
 
         <button class="button" id="filterButton">Filtrar</button>
@@ -160,7 +160,7 @@
                 </tr>
             </thead>
             <tbody id="operationsList">
-                <!-- Aqui serão inseridas as linhas da tabela com os dados filtrados -->
+                <!-- linhas da tabela com os dados filtrados -->
             </tbody>
             <tfoot>
                 <tr>
@@ -179,12 +179,12 @@
         // WebSocket connection
         const socket = new WebSocket('ws://localhost:3000');
 
-        // Função para calcular o saldo com base nos valores filtrados
+        // calcular o saldo com base nos valores filtrados
         function calcularSaldo(operations) {
             return operations.reduce((saldo, operation) => saldo + (operation.valor / 100), 0);
         }
 
-        // Ouça as mensagens recebidas
+        // ouvir as mensagens recebidas
         socket.addEventListener('message', event => {
             const operations = JSON.parse(event.data);
             const storeFilter = document.getElementById('storeFilter');
@@ -193,21 +193,21 @@
             const selectedFileName = document.getElementById('selectedFileName'); 
 
             function formatarData(data) {
-                // Verifique se a data está no formato AAAA MM DD (8 caracteres)
+                // testar se a data está no formato AAAA MM DD (8 caracteres)
                 if (data.length === 8) {
                     const ano = data.slice(0, 4);
                     const mes = data.slice(4, 6);
                     const dia = data.slice(6, 8);
                     return `${ano}/${mes}/${dia}`;
                 } else {
-                    return data; // Retorna a data como está se não estiver no formato esperado
+                    return data; // retorna a data como está se não estiver no formato esperado
                 }
             }
 
             function filterOperations() {
                 const selectedStore = storeFilter.value;
 
-                // Limpar a lista antes de exibi-la com os dados filtrados
+                // limpar a lista antes de exibi-la com os dados filtrados
                 operationsList.innerHTML = '';
 
                 const filteredOperations = operations.filter(operation => selectedStore === 'all' || operation.nome_da_loja === selectedStore);
@@ -226,20 +226,20 @@
                     operationsList.appendChild(row);
                 });
 
-                // Calcular o saldo com base nos valores filtrados
+                // calcular o saldo com base nos valores filtrados
                 const saldo = calcularSaldo(filteredOperations);
                 saldoElement.textContent = `Saldo: R$ ${saldo.toFixed(2)}`;
             }
 
-            // Chame a função de filtro inicialmente para exibir todos os dados e o saldo
+            //chamad a função de filtro inicialmente para exibir todos os dados e o saldo
             filterOperations();
 
-            // Ouça o clique no botão de filtro
+            //clique no botão de filtro
             const filterButton = document.getElementById('filterButton');
             filterButton.addEventListener('click', filterOperations);
         });
 
-        // Função para exibir o nome do arquivo selecionado
+        //exibir o nome do arquivo selecionado
         function displayFileName() {
             const fileInput = document.getElementById('fileInput');
             const selectedFileName = document.getElementById('selectedFileName');
@@ -250,7 +250,7 @@
             }
         }
 
-        // Manipulador de cliques do botão de upload
+        //Manipulador de cliques do botão de upload
         document.getElementById('uploadButton').addEventListener('click', () => {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
@@ -272,7 +272,7 @@
                         console.error('Erro no upload:', error);
                     });
 
-                // Limpar o input de arquivo
+                // limpar o input de arquivo
                 fileInput.value = '';
 
                 
